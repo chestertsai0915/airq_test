@@ -1,0 +1,38 @@
+# env
+.env
+.env.*
+# BUT allow example template
+!.env.example
+# data
+data/raw/
+*.csv
+*.parquet
+
+trading_data.db-shm
+trading_data.db-wal
+trading_data.db
+.DS_Store
+# python
+__pycache__/
+.ipynb_checkpoints/
+test.ipynb
+test2.ipynb
+# logs
+logs/
+
+# database
+*.db
+.DS_Store
+
+# docker
+.dockerignore
+Dockerfile
+
+# text files
+*.txt
+
+# logs
+*.log
+
+*.png
+*.csv
