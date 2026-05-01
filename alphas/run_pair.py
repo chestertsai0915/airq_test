@@ -54,7 +54,7 @@ def main():
     # 在這裡設定回測參數
     # ==========================================
     start_date = "2014-01-01"   # 起始日
-    end_date   = "2026-04-30"   # 結束日
+    end_date   = "2026-04-01"   # 結束日
     split_date = "2022-01-01"   # IS/OS 切分點
     sym1       = "YF_GLD"       # asset1
     sym2       = "YF_SLV"       # asset2

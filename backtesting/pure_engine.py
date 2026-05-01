@@ -136,7 +136,7 @@ class VirtualAccount:
 
 class PureBacktestEngine:
     def __init__(self, df, initial_balance=10000.0, mode='next_open',
-                 leverage=1.0, tolerance=0.1):
+                 leverage=1.0, tolerance=0.0):
         """
         參數說明:
         - leverage  : 槓桿倍數，傳入 VirtualAccount 用於保證金計算 (預設 1x)

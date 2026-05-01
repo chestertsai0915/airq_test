@@ -177,8 +177,8 @@ def plot_performance(result_df, split_date, strategy_name):
     eq_s = result_df.set_index('datetime')['equity']
     daily_eq = eq_s.resample('1D').last().dropna()
     daily_ret = daily_eq.pct_change().dropna()
-    roll_sharpe = (daily_ret.rolling(15).mean() / daily_ret.rolling(15).std()) * np.sqrt(365)
-    ax3.plot(roll_sharpe.index, roll_sharpe, color='purple', linewidth=1.5, label='15D Rolling Sharpe')
+    roll_sharpe = (daily_ret.rolling(60).mean() / daily_ret.rolling(60).std()) * np.sqrt(365)
+    ax3.plot(roll_sharpe.index, roll_sharpe, color='purple', linewidth=1.5, label='60D Rolling Sharpe')
     ax3.axhline(0, color='black', linewidth=0.5, linestyle='--')
     ax3.axvline(split_dt, color='red', linestyle='--', alpha=0.3)
     ax3.set_ylabel("Sharpe")

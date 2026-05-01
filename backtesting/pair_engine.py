@@ -37,7 +37,7 @@ class PairBacktestEngine:
     """
 
     def __init__(self, df_aligned, initial_balance=10000.0,
-                 balance_split=0.5, leverage=1.0, tolerance=0.05):
+                 balance_split=0.5, leverage=3.0, tolerance=0.00):
 
         self.df = df_aligned.copy()
         self._validate_columns()
@@ -82,15 +82,46 @@ class PairBacktestEngine:
                 self.account2.pay_funding(fr2, open2)
 
             # ---- 2. 執行 pending order（next_open 模式）----
+            # ---- 2. 執行 pending order（next_open 模式）----
             eq1 = self.account1.mark_to_market(open1)
             eq2 = self.account2.mark_to_market(open2)
 
-            if self._pending1 is not None:
+            # 【新增邏輯】：以 A 為主，強制 B 做等價值對沖 (Dollar-Neutral)
+            if self._pending1 is not None and self._pending2 is not None:
+                # 1. 算出 A 的目標名目價值 (A 的淨值 * A 的目標比例)
+                target_val_a = eq1 * self._pending1
+
+                # 2. 決定 B 的方向 (+1 或 -1 或 0)
+                if self._pending2 > 0:
+                    direction_b = 1.0
+                elif self._pending2 < 0:
+                    direction_b = -1.0
+                else:
+                    direction_b = 0.0
+
+                # 3. 強制 B 的名目價值與 A 的絕對值完全一樣，方向由 B 原本的訊號決定
+                target_val_b = abs(target_val_a) * direction_b
+
+                # 4. 把 B 的等值目標金額，反推回 B 帳戶的「資金佔比 (Target Percentage)」
+                # 這樣原本底層的 _rebalance 函數就能無縫接收並精準換算股數
+                adjusted_pending2 = target_val_b / eq2 if eq2 > 0 else 0.0
+
+                # 5. 同步執行調倉
                 self._rebalance(self.account1, self._pending1, open1, eq1)
+                self._rebalance(self.account2, adjusted_pending2, open2, eq2)
+
+                # 清除暫存訊號
                 self._pending1 = None
-            if self._pending2 is not None:
-                self._rebalance(self.account2, self._pending2, open2, eq2)
                 self._pending2 = None
+                
+            else:
+                # 單邊訊號的防呆處理 (如果只有一邊有訊號，則按其原比例執行)
+                if self._pending1 is not None:
+                    self._rebalance(self.account1, self._pending1, open1, eq1)
+                    self._pending1 = None
+                if self._pending2 is not None:
+                    self._rebalance(self.account2, self._pending2, open2, eq2)
+                    self._pending2 = None
 
             # ---- 3. Mark-to-market（收盤價）& 記錄 ----
             eq1 = self.account1.mark_to_market(close1, ts, record=True)
