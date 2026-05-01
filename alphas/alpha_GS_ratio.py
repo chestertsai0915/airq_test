@@ -25,8 +25,8 @@ class Strategy(BasePairAlpha):
     requirements_2 = ['close']   # SLV：同上
 
     default_params = {
-        "ratio_window":      60,    # 滾動均值/標準差計算窗口（交易日）
-        "entry_z":           2.0,   # 進場 Z-score 閾值
+        "ratio_window":      70,    # 滾動均值/標準差計算窗口（交易日）
+        "entry_z":           3.0,   # 進場 Z-score 閾值
         "exit_z":            0.0,   # 出場 Z-score 閾值（回歸中性）
         "max_hold_days":     30,    # 最長持倉天數（時間出場）
     }
@@ -83,7 +83,7 @@ class Strategy(BasePairAlpha):
         entry_z      = p["entry_z"]
         exit_z       = p["exit_z"]
         max_hold     = int(p["max_hold_days"])
-        size         = 0.5
+        size         = 0.99
 
         z = row1.get('zscore', 0.0)
 
@@ -91,17 +91,7 @@ class Strategy(BasePairAlpha):
         if row1.get('ratio_std', 0.0) == 0.0:
             return None, None
         
-        # ---- 持倉中：計算時間出場 ----
-        if self._in_position:
-            self._hold_days += 1
-            # 時間出場 or Z-score 回歸中性
-            if self._hold_days >= max_hold and abs(z) < exit_z:
-                self._in_position = False
-                self._hold_days   = 0
-                return 0.0, 0.0    # 平倉
-
-            # 持倉中且未到出場條件 → 維持不動
-            return None, None
+        
         
         # ---- 未持倉：尋找進場機會 ----
 
@@ -115,7 +105,19 @@ class Strategy(BasePairAlpha):
         if z <= -entry_z:
             self._in_position = True
             self._hold_days   = 0
+            
             return +size, -size
 
+        # ---- 持倉中：計算時間出場 ----
+        if self._in_position:
+            self._hold_days += 1
+            # 時間出場 or Z-score 回歸中性
+            if self._hold_days >= max_hold and abs(z) < exit_z:
+                self._in_position = False
+                self._hold_days   = 0
+                return 0.0, 0.0    # 平倉
+
+            # 持倉中且未到出場條件 → 維持不動
+            return None, None
         
         return None, None

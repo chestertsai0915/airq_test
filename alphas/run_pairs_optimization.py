@@ -96,7 +96,7 @@ def main():
     # 2. 設定回測區間 (留一部分做 Out-of-Sample 驗證)
     start_date = "2014-01-01"   
     end_date   = "2026-03-29"   
-    split_date = "2023-03-01"   
+    split_date = "2026-03-01"   
 
     # 3. 啟動配對研究環境
     env = PairsResearchEnvironment(

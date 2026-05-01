@@ -21,7 +21,7 @@ class Strategy(BasePairAlpha):
         # 第一筆：建立倉位
         if not hasattr(self, '_entered'):
             self._entered = True
-            return 0.5, -0.5
+            return 0.5, 0.5
 
         # 之後維持不動
         return None, None

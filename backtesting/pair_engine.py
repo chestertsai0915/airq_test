@@ -82,7 +82,6 @@ class PairBacktestEngine:
                 self.account2.pay_funding(fr2, open2)
 
             # ---- 2. 執行 pending order（next_open 模式）----
-            # ---- 2. 執行 pending order（next_open 模式）----
             eq1 = self.account1.mark_to_market(open1)
             eq2 = self.account2.mark_to_market(open2)
 
