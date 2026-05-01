@@ -178,3 +178,35 @@ class BacktestDataFactory:
         final_df.to_parquet(cache_file, index=False)
         print(f" [Factory] 寫入完成! Shape: {final_df.shape}")
         return final_df
+    
+    def prepare_pairs_features(self, sym1='YF_GLD', sym2='YF_SLV', start_time=None, end_time=None):
+        """
+        專為配對交易設計的資料載入器，確保兩個資產時間完全對齊
+        """
+        print(f" [Factory] 正在為 {sym1} 與 {sym2} 準備配對數據...")
+        
+        # 1. 讀取兩個資產的日 K 線
+        df1 = self.db.load_market_data(sym1, '1d', limit=None)
+        df2 = self.db.load_market_data(sym2, '1d', limit=None)
+
+        if df1.empty or df2.empty:
+            raise ValueError(f"資料庫缺少 {sym1} 或 {sym2} 的 K 線數據")
+
+        # 2. 重新命名欄位以防衝突 (加上後綴)
+        df1 = df1.add_suffix('_1').rename(columns={'open_time_1': 'open_time'})
+        df2 = df2.add_suffix('_2').rename(columns={'open_time_2': 'open_time'})
+
+        # 3. Inner Join 對齊時間 (剔除單邊休市的日子)
+        main_df = pd.merge(df1, df2, on='open_time', how='inner')
+        main_df['datetime'] = pd.to_datetime(main_df['open_time'], unit='ms')
+        main_df = main_df.sort_values('datetime').reset_index(drop=True)
+
+        # 4. 時間篩選
+        if start_time:
+            main_df = main_df[main_df['datetime'] >= pd.to_datetime(start_time)]
+        if end_time:
+            main_df = main_df[main_df['datetime'] <= pd.to_datetime(end_time)]
+
+        print(f" [Factory] 配對數據對齊完成! Shape: {main_df.shape}")
+        return main_df
+        

@@ -11,7 +11,7 @@ class VirtualAccount:
        原本只要 balance >= fee 就能開倉，導致帳戶可以無限加倉直到 balance 被手續費磨光
     2. [BUG FIX] balance 歸零防護：balance 不可為負，若扣費後為負直接攔截
     """
-    def __init__(self, initial_balance=10000.0, maker_fee=0.0002, taker_fee=0.0005,
+    def __init__(self, initial_balance=10000.0, maker_fee=0.0, taker_fee=0.0,
                  leverage=1.0):
         self.initial_balance = initial_balance
         self.balance = initial_balance  
@@ -270,3 +270,5 @@ class PureBacktestEngine:
             if self.account.position < 0:
                 cover_qty = abs(self.account.position) * pct
                 self.account.execute('BUY', cover_qty, price, "Short Exit")
+
+
