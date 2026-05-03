@@ -1,17 +1,9 @@
-"""
-alphas/brain_pairs.py
-
-配對交易回測主程式。
-用法（直接執行或由 run_pairs.py 呼叫）：
-
-    python alphas/brain_pairs.py alphas/alpha_pairs_gld_slv.py \
-        --start 2023-01-01 --end 2025-01-01 --split 2024-06-01
-"""
 import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import importlib.util
 import sys
 import os
@@ -173,25 +165,59 @@ def plot_performance(result_df, split_date, strategy_name):
     ax2.set_ylabel("Position (qty)")
     ax2.legend(loc='upper left', fontsize=9)
 
-    # Rolling Sharpe（合計）
+   # 3. 滾動損益兩平勝率 (Break-Even Win Rate) vs 實際勝率
+    # ==========================================
     eq_s = result_df.set_index('datetime')['equity']
     daily_eq = eq_s.resample('1D').last().dropna()
     daily_ret = daily_eq.pct_change().dropna()
-    roll_sharpe = (daily_ret.rolling(60).mean() / daily_ret.rolling(60).std()) * np.sqrt(365)
-    ax3.plot(roll_sharpe.index, roll_sharpe, color='purple', linewidth=1.5, label='60D Rolling Sharpe')
-    ax3.axhline(0, color='black', linewidth=0.5, linestyle='--')
-    ax3.axvline(split_dt, color='red', linestyle='--', alpha=0.3)
-    ax3.set_ylabel("Sharpe")
+    
+    window = 60  # 60天的滾動視窗
+    
+    # 1. 計算滾動「實際勝率」(日報酬 > 0 的比例)
+    roll_win_rate = (daily_ret > 0).rolling(window).mean()
+    
+    # 2. 計算滾動「平均獲利」與「平均虧損」
+    # 將賺錢的日子挑出來算平均
+    roll_avg_win = daily_ret.where(daily_ret > 0).rolling(window, min_periods=1).mean()
+    roll_avg_loss = daily_ret.where(daily_ret < 0).abs().rolling(window, min_periods=1).mean()
+    
+    # 3. 計算滾動「損益兩平勝率 (BEW)」
+    # 公式: BEW = Avg Loss / (Avg Win + Avg Loss)
+    roll_bew = roll_avg_loss / (roll_avg_win + roll_avg_loss)
+    # 防呆：如果期間內全勝、全敗或沒波動，將 NaN 填為 0
+    roll_bew = roll_bew.fillna(0) 
+
+    # 4. 繪圖
+    ax3.plot(roll_win_rate.index, roll_win_rate, color='purple', linewidth=1.5, label='60D Actual Win Rate')
+    ax3.plot(roll_bew.index, roll_bew, color='orange', linewidth=1.5, linestyle='-.', label='60D Break-Even Win Rate')
+    
+    # 5. 視覺化魔法：填滿超額期望值區域
+    # 實際勝率 > BEW (綠色：期望值為正，賺錢中)
+    ax3.fill_between(roll_win_rate.index, roll_bew, roll_win_rate, 
+                     where=(roll_win_rate >= roll_bew), facecolor='green', alpha=0.3, interpolate=True)
+    # 實際勝率 < BEW (紅色：期望值為負，虧錢中)
+    ax3.fill_between(roll_win_rate.index, roll_bew, roll_win_rate, 
+                     where=(roll_win_rate < roll_bew), facecolor='red', alpha=0.3, interpolate=True)
+
+    ax3.axhline(0.5, color='black', linewidth=0.5, linestyle='--') # 50% 基準線
+    ax3.axvline(split_dt, color='blue', linestyle='--', alpha=0.3)
+    ax3.set_ylabel("Win Rate vs BEW")
     ax3.legend(loc='upper left', fontsize=9)
+    
+    # 將 Y 軸轉為百分比顯示
+
+    ax3.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 
     # Drawdown（合計）
+    eq_s = result_df.set_index('datetime')['equity']
+    daily_eq = eq_s.resample('1D').last().dropna()
     roll_max = eq_s.cummax()
     dd = (eq_s - roll_max) / roll_max
     ax4.fill_between(dd.index, dd, 0, color='#d62728', alpha=0.3, label='Drawdown')
     ax4.set_ylabel("DD")
     ax4.legend(loc='lower left', fontsize=9)
 
-    import matplotlib.ticker as mtick
+   
     ax4.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 
     plt.tight_layout()

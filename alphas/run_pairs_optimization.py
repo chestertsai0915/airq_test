@@ -91,7 +91,7 @@ def run_optuna_search(env, search_space, n_trials=100):
 
 def main():
     # 1. 綁定你的金銀比策略檔
-    strategy_file = "alphas/alpha_GS_ratio.py" 
+    strategy_file = "alphas/alpha_GS_ratio2.py" 
     
     # 2. 設定回測區間 (留一部分做 Out-of-Sample 驗證)
     start_date = "2014-01-01"   
@@ -112,7 +112,7 @@ def main():
     # 定義配對策略 (alpha_GS_ratio) 的搜尋空間
     # ==========================================
     search_space = {
-        "ratio_window":  {"type": "int",   "low": 30,  "high": 90,  "step": 10},  # 均線長度 (30~90天)
+        "ratio_window":  {"type": "int",   "low": 30,  "high": 90,  "step": 5},  # 均線長度 (30~90天)
         "entry_z":       {"type": "float", "low": 1.5, "high": 3.0, "step": 0.5}, # 進場門檻 (高一點比較安全)
         "exit_z":        {"type": "float", "low": 0.0, "high": 1.5, "step": 0.5}, # 出場門檻 (回歸到多少平倉)
         "max_hold_days": {"type": "int",   "low": 10,  "high": 40,  "step": 10}   # 強制時間平倉天數
